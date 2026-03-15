@@ -1,14 +1,14 @@
-import express from 'express';
+import express from "express";
 
 const app = express();
-const port = parseInt(process.env.PORT || '8080');
+const port = parseInt(process.env.PORT || "8080");
 
-app.get('/', (_req, res) => {
-  res.json({ message: 'Hello World' });
+app.get("/", (_req, res) => {
+  res.json({ message: "Hello World" });
 });
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
 });
 
 app.listen(port, () => {
