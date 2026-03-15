@@ -2,10 +2,11 @@ import request from "supertest";
 import app from "../app";
 
 describe("GET /", () => {
-  it("returns Hello World JSON", async () => {
+  it("returns 200 with HTML", async () => {
     const res = await request(app).get("/");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ message: "Hello World" });
+    expect(res.headers["content-type"]).toMatch(/text\/html/);
+    expect(res.text).toContain("Hello World");
   });
 });
 
