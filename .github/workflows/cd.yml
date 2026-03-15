@@ -48,7 +48,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      image: ${{ env.IMAGE }}:${{ github.sha }}
+      image: ${{ steps.set-image.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -70,6 +70,10 @@ jobs:
         run: |
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
+
+      - name: Set image output
+        id: set-image
+        run: echo "image=$IMAGE:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Deploy to Cloud Run
