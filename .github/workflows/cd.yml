@@ -47,8 +47,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    outputs:
-      image: ${{ steps.set-image.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -71,10 +69,6 @@ jobs:
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
-      - name: Set image output
-        id: set-image
-        run: echo "image=$IMAGE:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
   deploy:
     name: Deploy to Cloud Run
     needs: build-push
@@ -92,7 +86,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ vars.TF_VAR_REGION }}
-          image: ${{ needs.build-push.outputs.image }}
+          image: ${{ vars.TF_VAR_REGION }}-docker.pkg.dev/${{ secrets.TF_VAR_PROJECT_ID }}/gcp-cloud-run/gcp-cloud-run:${{ github.sha }}
 
       - name: Print service URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
