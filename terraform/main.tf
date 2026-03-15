@@ -39,7 +39,8 @@ resource "google_cloud_run_v2_service" "app" {
     service_account = google_service_account.app.email
 
     containers {
-      image = local.image_url
+      # Placeholder used for initial bootstrap — the deploy job updates this via gcloud run deploy
+      image = "us-docker.pkg.dev/cloudrun/container/hello:latest"
 
       resources {
         limits = {
