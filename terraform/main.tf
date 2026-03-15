@@ -2,6 +2,11 @@ locals {
   image_url = "${var.region}-docker.pkg.dev/${var.project_id}/${var.service_name}/${var.service_name}:${var.image_tag}"
 }
 
+resource "google_project_service" "cloudresourcemanager_api" {
+  service            = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "run_api" {
   service            = "run.googleapis.com"
   disable_on_destroy = false
