@@ -36,11 +36,6 @@ resource "google_cloud_run_v2_service" "app" {
     containers {
       image = local.image_url
 
-      env {
-        name  = "PORT"
-        value = "8080"
-      }
-
       resources {
         limits = {
           cpu    = "1"
