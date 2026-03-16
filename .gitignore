@@ -6,3 +6,6 @@ terraform/.terraform/
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/*.tfvars
+
+# Local notes
+README.local.md
