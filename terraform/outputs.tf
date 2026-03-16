@@ -1,6 +1,17 @@
 output "service_url" {
-  description = "The URL of the deployed Cloud Run service."
+  description = "The internal Cloud Run service URL (private — use gateway_url for public access)."
   value       = google_cloud_run_v2_service.app.uri
+}
+
+output "gateway_url" {
+  description = "Public API Gateway URL — use this instead of the Cloud Run URL."
+  value       = "https://${google_api_gateway_gateway.gateway.default_hostname}"
+}
+
+output "api_key" {
+  description = "API key for protected routes (/random-int, /random-name-string). Pass as x-api-key header."
+  value       = google_apikeys_key.api_key.key_string
+  sensitive   = true
 }
 
 output "artifact_registry_repository_url" {

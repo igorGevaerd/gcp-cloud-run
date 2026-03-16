@@ -119,4 +119,19 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+app.get("/random-int", (_req, res) => {
+  res.json({ value: Math.floor(Math.random() * 100) + 1 });
+});
+
+const NAMES = [
+  "Alice", "Bob", "Carol", "David", "Emma", "Frank", "Grace", "Henry",
+  "Isabel", "James", "Karen", "Liam", "Mia", "Noah", "Olivia", "Paul",
+  "Quinn", "Rachel", "Sam", "Tara", "Uma", "Victor", "Wendy", "Xander",
+  "Yara", "Zoe",
+];
+
+app.get("/random-name-string", (_req, res) => {
+  res.json({ name: NAMES[Math.floor(Math.random() * NAMES.length)] });
+});
+
 export default app;
