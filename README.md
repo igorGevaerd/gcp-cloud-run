@@ -35,9 +35,13 @@ The Cloud Run service has no public invoker — all traffic must go through the 
 │   └── __tests__/
 │       └── app.test.ts     # Jest + supertest tests
 ├── terraform/
-│   ├── main.tf             # Cloud Run, Artifact Registry, API Gateway, IAM
+│   ├── apis.tf             # all google_project_service (API enablement)
+│   ├── artifact_registry.tf # Artifact Registry repository
+│   ├── cloud_run.tf        # Cloud Run service, app SA, gateway IAM binding
+│   ├── api_gateway.tf      # API Gateway, api config, gateway, api key, OpenAPI spec
+│   ├── wif.tf              # Workload Identity Federation
 │   ├── variables.tf        # project_id, region, service_name, image_tag
-│   ├── outputs.tf          # gateway_url, service_url, api_key, image_url, registry_url
+│   ├── outputs.tf          # gateway_url, service_url, api_key, wif_provider, gcp_sa_email
 │   └── versions.tf         # provider constraints
 ├── docs/
 │   ├── diagram.py          # generates docs/gcp-infrastructure.png
@@ -210,8 +214,9 @@ Required GitHub secrets/variables:
 | Name | Type | Description |
 |---|---|---|
 | `TF_VAR_PROJECT_ID` | Secret | GCP project ID |
-| `GCP_SA_KEY` | Secret | Service account key JSON |
 | `TF_VAR_REGION` | Variable | GCP region (defaults to `us-central1` if not set) |
+| `WIF_PROVIDER` | Variable | Workload Identity Federation provider name (from `terraform output wif_provider`) |
+| `GCP_SA_EMAIL` | Variable | CI/CD service account email (from `terraform output gcp_sa_email`) |
 
 ## GCP Infrastructure
 

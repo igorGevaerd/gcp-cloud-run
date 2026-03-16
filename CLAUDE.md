@@ -28,12 +28,12 @@ The Dockerfile uses a multi-stage build: compiles TypeScript in the builder stag
 
 ### Routes
 
-| Method | Path | Response |
-|--------|------|----------|
-| GET | `/` | Styled HTML landing page |
-| GET | `/health` | `{ "status": "ok" }` (JSON) |
-| GET | `/random-int` | `{ "value": <integer 1–100> }` (JSON) | requires `x-api-key` header |
-| GET | `/random-name-string` | `{ "name": "<random name>" }` (JSON) | requires `x-api-key` header |
+| Method | Path | Auth | Response |
+|--------|------|------|----------|
+| GET | `/` | None | Styled HTML landing page |
+| GET | `/health` | None | `{ "status": "ok" }` (JSON) |
+| GET | `/random-int` | API key | `{ "value": <integer 1–100> }` (JSON) |
+| GET | `/random-name-string` | API key | `{ "name": "<random name>" }` (JSON) |
 
 ## Infrastructure (Terraform)
 
@@ -44,7 +44,8 @@ The `terraform/` directory manages all GCP infrastructure:
 - **API Gateway** — public entry point in front of Cloud Run; enforces API key auth on protected routes
 - **Service accounts** — one for the Cloud Run app, one for the API Gateway to invoke Cloud Run
 - **API key** (`google_apikeys_key`) — restricted to the managed service; retrieve after apply with `terraform output -raw api_key`
-- **API enablement** — Cloud Run, Artifact Registry, Cloud Resource Manager, API Gateway, Service Management, Service Control, API Keys
+- **Workload Identity Federation** — allows GitHub Actions to authenticate to GCP without a long-lived service account key
+- **API enablement** — Cloud Run, Artifact Registry, Cloud Resource Manager, API Gateway, Service Management, Service Control, API Keys, IAM Credentials
 
 Key variables: `project_id`, `region` (default `us-central1`), `service_name` (default `gcp-cloud-run`).
 
@@ -52,10 +53,11 @@ After `terraform apply`, use `gateway_url` (not `service_url`) for all public tr
 
 ## CI/CD
 
-Push to `main` triggers the CD pipeline (`.github/workflows/cd.yml`) with three sequential jobs:
+Push to `main` triggers the CD pipeline (`.github/workflows/cd.yml`) with four sequential jobs:
 
 1. **Terraform Apply** — provisions/updates GCP infra
 2. **Build & Push** — builds the Docker image and pushes to Artifact Registry tagged with the Git SHA and `latest`
 3. **Deploy to Cloud Run** — deploys the SHA-tagged image via `google-github-actions/deploy-cloudrun`
+4. **E2E Tests** — verifies all endpoints against the live API Gateway using Terraform outputs
 
 Other workflows: `terraform-ci.yml` (plan on PRs), `terraform-approve.yml`, `code-review.yml`, `claude.yml`.
