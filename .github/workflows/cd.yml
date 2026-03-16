@@ -90,3 +90,48 @@ jobs:
 
       - name: Print service URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
+
+  e2e:
+    name: E2E Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~> 1.4'
+          terraform_wrapper: false
+
+      - name: Init
+        run: terraform init
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Run E2E tests
+        run: |
+          GATEWAY_URL=$(terraform output -raw gateway_url)
+          API_KEY=$(terraform output -raw api_key)
+          echo "::add-mask::$API_KEY"
+
+          echo "--- Open routes ---"
+          curl -sf "$GATEWAY_URL/" > /dev/null
+          curl -sf "$GATEWAY_URL/health" | grep '"status":"ok"'
+
+          echo "--- Protected routes with valid key ---"
+          curl -sf -H "x-api-key: $API_KEY" "$GATEWAY_URL/random-int" | grep '"value"'
+          curl -sf -H "x-api-key: $API_KEY" "$GATEWAY_URL/random-name-string" | grep '"name"'
+
+          echo "--- Protected routes without key (expect 401) ---"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/random-int")
+          [ "$STATUS" = "401" ] || (echo "Expected 401 but got $STATUS" && exit 1)
+
+          echo "All E2E tests passed!"
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}

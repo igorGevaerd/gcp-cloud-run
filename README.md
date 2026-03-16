@@ -72,6 +72,29 @@ Retrieve the key after deployment:
 terraform -chdir=terraform output -raw api_key
 ```
 
+## Testing the API
+
+After every deployment to production, the CD pipeline automatically runs an **E2E test job** (`e2e` in `cd.yml`) that verifies all endpoints against the live gateway. The job retrieves the gateway URL and API key from Terraform state and runs the following checks:
+
+```bash
+# Store outputs in variables
+API_KEY=$(terraform -chdir=terraform output -raw api_key)
+GATEWAY_URL=$(terraform -chdir=terraform output -raw gateway_url)
+
+# Open routes — no key needed
+curl $GATEWAY_URL/
+curl $GATEWAY_URL/health
+
+# Protected routes with valid key — should return 200
+curl -H "x-api-key: $API_KEY" $GATEWAY_URL/random-int
+curl -H "x-api-key: $API_KEY" $GATEWAY_URL/random-name-string
+
+# Protected routes without key — should return 401
+curl $GATEWAY_URL/random-int
+```
+
+You can also run these manually at any time after `terraform apply`.
+
 ## Prerequisites
 
 - Node.js 22+
@@ -166,6 +189,7 @@ docker push \
 1. **Terraform apply** — provisions/updates all GCP infrastructure
 2. **Build & push** — Docker image pushed to Artifact Registry (tagged with Git SHA + `latest`)
 3. **Deploy** — new image deployed to Cloud Run
+4. **E2E tests** — verifies all endpoints against the live gateway (open routes, protected routes with/without key)
 
 **`code-review.yml`** — triggered on all PRs:
 
