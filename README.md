@@ -72,6 +72,27 @@ Retrieve the key after deployment:
 terraform -chdir=terraform output -raw api_key
 ```
 
+## Testing the API
+
+After deployment, retrieve the outputs and test all endpoints:
+
+```bash
+# Store outputs in variables
+API_KEY=$(terraform -chdir=terraform output -raw api_key)
+GATEWAY_URL=$(terraform -chdir=terraform output -raw gateway_url)
+
+# Protected routes — should return 200
+curl -H "x-api-key: $API_KEY" $GATEWAY_URL/random-int
+curl -H "x-api-key: $API_KEY" $GATEWAY_URL/random-name-string
+
+# Without key — should return 401
+curl $GATEWAY_URL/random-int
+
+# Open routes — no key needed
+curl $GATEWAY_URL/health
+curl $GATEWAY_URL/
+```
+
 ## Prerequisites
 
 - Node.js 22+
