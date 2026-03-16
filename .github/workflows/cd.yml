@@ -95,7 +95,6 @@ jobs:
     name: E2E Tests
     needs: deploy
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
     defaults:
