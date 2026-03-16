@@ -124,10 +124,32 @@ app.get("/random-int", (_req, res) => {
 });
 
 const NAMES = [
-  "Alice", "Bob", "Carol", "David", "Emma", "Frank", "Grace", "Henry",
-  "Isabel", "James", "Karen", "Liam", "Mia", "Noah", "Olivia", "Paul",
-  "Quinn", "Rachel", "Sam", "Tara", "Uma", "Victor", "Wendy", "Xander",
-  "Yara", "Zoe",
+  "Alice",
+  "Bob",
+  "Carol",
+  "David",
+  "Emma",
+  "Frank",
+  "Grace",
+  "Henry",
+  "Isabel",
+  "James",
+  "Karen",
+  "Liam",
+  "Mia",
+  "Noah",
+  "Olivia",
+  "Paul",
+  "Quinn",
+  "Rachel",
+  "Sam",
+  "Tara",
+  "Uma",
+  "Victor",
+  "Wendy",
+  "Xander",
+  "Yara",
+  "Zoe",
 ];
 
 app.get("/random-name-string", (_req, res) => {
