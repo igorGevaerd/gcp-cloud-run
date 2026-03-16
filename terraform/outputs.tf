@@ -1,3 +1,13 @@
+output "wif_provider" {
+  description = "WIF provider name — set as WIF_PROVIDER GitHub variable to replace GCP_SA_KEY."
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "gcp_sa_email" {
+  description = "CI/CD service account email — set as GCP_SA_EMAIL GitHub variable."
+  value       = data.google_service_account.github_actions.email
+}
+
 output "service_url" {
   description = "The internal Cloud Run service URL (private — use gateway_url for public access)."
   value       = google_cloud_run_v2_service.app.uri

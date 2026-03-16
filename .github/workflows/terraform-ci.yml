@@ -13,6 +13,7 @@ jobs:
       contents: read
       pull-requests: write
       statuses: write
+      id-token: write
 
     defaults:
       run:
@@ -20,6 +21,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -36,8 +42,6 @@ jobs:
 
       - name: Init (with backend)
         run: terraform init -reconfigure
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
 
       - name: Plan
         id: plan
@@ -48,8 +52,6 @@ jobs:
             -var="region=${{ vars.TF_VAR_REGION || 'us-central1' }}" \
           2>&1 | tee plan.txt
           echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
         continue-on-error: true
 
       - name: Post plan to PR

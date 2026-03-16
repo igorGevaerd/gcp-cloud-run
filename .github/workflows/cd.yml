@@ -18,11 +18,17 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     defaults:
       run:
         working-directory: terraform
     steps:
       - uses: actions/checkout@v6
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -30,16 +36,12 @@ jobs:
 
       - name: Init
         run: terraform init
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
 
       - name: Apply
         run: |
           terraform apply -auto-approve \
             -var="project_id=${{ secrets.TF_VAR_PROJECT_ID }}" \
             -var="region=${{ vars.TF_VAR_REGION }}"
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
 
   build-push:
     name: Build & Push
@@ -47,12 +49,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
 
       - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ vars.TF_VAR_REGION }}-docker.pkg.dev --quiet
@@ -75,10 +79,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - name: Deploy
         id: deploy
@@ -97,11 +103,17 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     defaults:
       run:
         working-directory: terraform
     steps:
       - uses: actions/checkout@v6
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -110,8 +122,6 @@ jobs:
 
       - name: Init
         run: terraform init
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
 
       - name: Run E2E tests
         run: |
@@ -132,5 +142,3 @@ jobs:
           [ "$STATUS" = "401" ] || (echo "Expected 401 but got $STATUS" && exit 1)
 
           echo "All E2E tests passed!"
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
