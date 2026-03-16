@@ -153,6 +153,13 @@ resource "google_api_gateway_api" "api" {
   depends_on = [google_project_service.apigateway_api]
 }
 
+resource "google_project_service" "api_gateway_managed_service" {
+  service            = google_api_gateway_api.api.managed_service
+  disable_on_destroy = false
+
+  depends_on = [google_api_gateway_api.api]
+}
+
 resource "google_api_gateway_api_config" "api_config" {
   provider             = google-beta
   api                  = google_api_gateway_api.api.api_id
