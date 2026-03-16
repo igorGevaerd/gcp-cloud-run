@@ -1,6 +1,25 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
+
+function log(
+  level: "INFO" | "WARNING" | "ERROR",
+  message: string,
+  extra?: Record<string, unknown>,
+) {
+  console.log(JSON.stringify({ severity: level, message, ...extra }));
+}
 
 const app = express();
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.on("finish", () => {
+    log("INFO", "request", {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+    });
+  });
+  next();
+});
 
 app.get("/", (_req, res) => {
   res.send(`<!DOCTYPE html>
