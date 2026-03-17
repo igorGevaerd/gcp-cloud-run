@@ -19,8 +19,8 @@ Express 5 API written in TypeScript on Node.js 22, deployed to GCP Cloud Run.
 
 ### Source layout
 
-- **`src/app.ts`** — creates the Express app and defines all routes; exported for use by tests
-- **`src/index.ts`** — imports the app and starts the HTTP server (reads `PORT` env var, defaults to `8080`)
+- **`src/app.ts`** — creates the Express app, defines all routes, and registers a response-finish middleware that emits structured JSON logs (`severity`, `method`, `path`, `status`) to stdout; exported for use by tests
+- **`src/index.ts`** — imports the app and starts the HTTP server (reads `PORT` env var, defaults to `8080`); startup log is also emitted as structured JSON
 - **`src/__tests__/app.test.ts`** — Jest + supertest tests that import `app.ts` directly (no server needed)
 - **Build output:** `dist/` (compiled from `src/` via `tsc`)
 
@@ -56,8 +56,8 @@ After `terraform apply`, use `gateway_url` (not `service_url`) for all public tr
 Push to `main` triggers the CD pipeline (`.github/workflows/cd.yml`) with four sequential jobs:
 
 1. **Terraform Apply** — provisions/updates GCP infra
-2. **Build & Push** — builds the Docker image and pushes to Artifact Registry tagged with the Git SHA and `latest`
+2. **Build & Push** — builds the Docker image, pushes to Artifact Registry tagged with the Git SHA and `latest`, then runs Trivy (`aquasecurity/trivy-action@0.35.0`) to scan for CRITICAL/HIGH vulnerabilities (non-blocking, `continue-on-error: true`)
 3. **Deploy to Cloud Run** — deploys the SHA-tagged image via `google-github-actions/deploy-cloudrun`
 4. **E2E Tests** — verifies all endpoints against the live API Gateway using Terraform outputs
 
-Other workflows: `terraform-ci.yml` (plan on PRs), `terraform-approve.yml`, `code-review.yml`, `claude.yml`.
+Other workflows: `terraform-ci.yml` (fmt/validate/plan on PRs touching `terraform/`), `terraform-approve.yml` (consolidated approval gate — sets status to `pending` on terraform PRs, to `success` on `/approve` comment), `code-review.yml`, `claude.yml`.

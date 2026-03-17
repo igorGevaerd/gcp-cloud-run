@@ -191,7 +191,7 @@ docker push \
 **`cd.yml`** — triggered on push to `main`:
 
 1. **Terraform apply** — provisions/updates all GCP infrastructure
-2. **Build & push** — Docker image pushed to Artifact Registry (tagged with Git SHA + `latest`)
+2. **Build & push** — Docker image pushed to Artifact Registry (tagged with Git SHA + `latest`); Trivy scans for CRITICAL/HIGH vulnerabilities (non-blocking)
 3. **Deploy** — new image deployed to Cloud Run
 4. **E2E tests** — verifies all endpoints against the live gateway (open routes, protected routes with/without key)
 
@@ -208,6 +208,12 @@ docker push \
 2. **Init** — `terraform init -backend=false`
 3. **Validate** — `terraform validate`
 4. **Plan** — runs `terraform plan` and posts the output as a PR comment
+
+**`terraform-approve.yml`** — single workflow handling the approval gate:
+
+- On `pull_request` touching `terraform/` — sets `terraform / approval` status to `pending`
+- On `issue_comment` with `/approve` by the repo owner — sets the status to `success`
+- PRs with no terraform changes never trigger this workflow, so the required check is never created for them
 
 Required GitHub secrets/variables:
 
