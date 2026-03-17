@@ -12,7 +12,7 @@ TypeScript REST API built with Express 5, containerised with Docker, and deploye
 | Container | Docker (multi-stage build) |
 | Platform | GCP Cloud Run (private) + API Gateway (public) |
 | IaC | Terraform ≥ 1.4 · google/google-beta provider ~> 6.0 |
-| CI | GitHub Actions · reviewdog |
+| CI | GitHub Actions · reviewdog · Gitleaks |
 
 ## Architecture
 
@@ -32,8 +32,12 @@ The Cloud Run service has no public invoker — all traffic must go through the 
 ├── src/
 │   ├── index.ts            # entry point — creates server, binds PORT
 │   ├── app.ts              # Express app (routes)
+│   ├── views/
+│   │   └── landing.html    # HTML for GET /
 │   └── __tests__/
 │       └── app.test.ts     # Jest + supertest tests
+├── scripts/
+│   └── test-api.sh         # smoke test for all endpoints (reads Terraform outputs)
 ├── terraform/
 │   ├── apis.tf             # all google_project_service (API enablement)
 │   ├── artifact_registry.tf # Artifact Registry repository
@@ -47,12 +51,17 @@ The Cloud Run service has no public invoker — all traffic must go through the 
 │   ├── diagram.py          # generates docs/gcp-infrastructure.png
 │   └── gcp-infrastructure.png
 ├── Dockerfile
-└── .github/workflows/
-    ├── cd.yml              # deploy pipeline (terraform → build → deploy)
-    ├── terraform-ci.yml    # plan on PRs touching terraform/
-    ├── terraform-approve.yml
-    ├── code-review.yml     # tests · ESLint · tsc · Prettier
-    └── claude.yml
+├── .dockerignore
+└── .github/
+    ├── CODEOWNERS
+    ├── dependabot.yml
+    ├── pull_request_template.md
+    └── workflows/
+        ├── cd.yml              # deploy pipeline (terraform → build → deploy → e2e)
+        ├── terraform-ci.yml    # fmt · validate · plan on PRs touching terraform/
+        ├── terraform-approve.yml # approval gate for terraform changes
+        ├── code-review.yml     # tests · ESLint · tsc · Prettier · Gitleaks
+        └── claude.yml
 ```
 
 ## API Endpoints
@@ -97,7 +106,16 @@ curl -H "x-api-key: $API_KEY" $GATEWAY_URL/random-name-string
 curl $GATEWAY_URL/random-int
 ```
 
-You can also run these manually at any time after `terraform apply`.
+You can also run the smoke test script at any time after `terraform apply`:
+
+```bash
+./scripts/test-api.sh
+
+# Or skip Terraform and pass values directly:
+GATEWAY_URL=https://... API_KEY=abc ./scripts/test-api.sh
+```
+
+The script asserts HTTP status codes and response body fields for every endpoint and exits 1 on any failure.
 
 ## Prerequisites
 
@@ -137,7 +155,7 @@ docker build -t gcp-cloud-run-api .
 docker run -p 8080:8080 gcp-cloud-run-api
 ```
 
-The Dockerfile uses a multi-stage build: compiles TypeScript in the builder stage, then copies only `dist/` and production dependencies to the final image.
+The Dockerfile uses a multi-stage build: compiles TypeScript in the builder stage, then copies only `dist/` and production dependencies to the final image. A `.dockerignore` file excludes `node_modules`, `dist`, `.git`, `terraform`, `docs`, `scripts`, and markdown files from the build context.
 
 ## Infrastructure (Terraform)
 
@@ -195,12 +213,13 @@ docker push \
 3. **Deploy** — new image deployed to Cloud Run
 4. **E2E tests** — verifies all endpoints against the live gateway (open routes, protected routes with/without key)
 
-**`code-review.yml`** — triggered on all PRs:
+**`code-review.yml`** — triggered on PRs touching source files (`src/`, `package.json`, `tsconfig.json`, `Dockerfile`, etc.) and on `workflow_dispatch`:
 
 1. **Unit tests** — `npm test`
 2. **ESLint** — inline PR annotations via reviewdog
 3. **Type check** — `tsc --noEmit`
 4. **Prettier** — format check
+5. **Secrets scan** — Gitleaks scans the diff for leaked credentials
 
 **`terraform-ci.yml`** — triggered on PRs that touch `terraform/`:
 
@@ -209,11 +228,10 @@ docker push \
 3. **Validate** — `terraform validate`
 4. **Plan** — runs `terraform plan` and posts the output as a PR comment
 
-**`terraform-approve.yml`** — single workflow handling the approval gate:
+**`terraform-approve.yml`** — runs on every PR, handling the approval gate:
 
-- On `pull_request` touching `terraform/` — sets `terraform / approval` status to `pending`
-- On `issue_comment` with `/approve` by the repo owner — sets the status to `success`
-- PRs with no terraform changes never trigger this workflow, so the required check is never created for them
+- No terraform changes → sets `terraform / approval` to `success` automatically
+- Terraform changes → sets status to `pending`; requires an `/approve` comment from the repo owner to proceed
 
 Required GitHub secrets/variables:
 
