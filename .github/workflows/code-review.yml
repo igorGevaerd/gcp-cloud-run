@@ -3,6 +3,7 @@ name: Code Review (Reviewdog)
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+  workflow_dispatch:
 
 jobs:
   reviewdog:
@@ -35,3 +36,8 @@ jobs:
 
       - name: Prettier check
         run: npx prettier --check 'src/**/*.ts'
+
+      - name: Secrets scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
