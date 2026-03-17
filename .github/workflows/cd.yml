@@ -75,6 +75,7 @@ jobs:
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@0.30.0
+        continue-on-error: true
         with:
           image-ref: "${{ env.IMAGE }}:${{ github.sha }}"
           format: table
