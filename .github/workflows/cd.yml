@@ -3,6 +3,15 @@ name: CD
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'terraform/**'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
 
 env:
