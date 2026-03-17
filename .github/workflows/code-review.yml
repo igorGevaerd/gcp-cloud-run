@@ -3,6 +3,14 @@ name: Code Review (Reviewdog)
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - '.eslintrc.json'
+      - '.prettierrc'
+      - 'Dockerfile'
   workflow_dispatch:
 
 jobs:
