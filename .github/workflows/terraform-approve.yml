@@ -3,8 +3,6 @@ name: Terraform Plan Approve
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    paths:
-      - 'terraform/**'
   issue_comment:
     types: [created]
 
@@ -44,20 +42,22 @@ jobs:
             const hasTerraformChanges = files.some(f => f.filename.startsWith('terraform/'));
             return JSON.stringify({ sha: pr.data.head.sha, hasTerraformChanges });
 
-      # PR opened/updated with terraform changes — set status to pending until /approve
-      - name: Set approval status to pending
+      # PR opened/updated — auto-approve if no terraform changes, pending if yes
+      - name: Set approval status
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const { sha } = JSON.parse(${{ toJson(steps.pr.outputs.result) }});
+            const { sha, hasTerraformChanges } = JSON.parse(${{ toJson(steps.pr.outputs.result) }});
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha,
-              state: 'pending',
+              state: hasTerraformChanges ? 'pending' : 'success',
               context: 'terraform / approval',
-              description: 'Comment /approve on the PR to proceed',
+              description: hasTerraformChanges
+                ? 'Comment /approve on the PR to proceed'
+                : 'No Terraform changes',
             });
 
       # /approve comment — set status to success
