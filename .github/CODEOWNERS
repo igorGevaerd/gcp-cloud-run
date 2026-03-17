@@ -1,0 +1,8 @@
+# Global owner — reviews required on all PRs
+* @igorGevaerd
+
+# Infrastructure changes require explicit review
+terraform/ @igorGevaerd
+
+# CI/CD pipeline changes require explicit review
+.github/ @igorGevaerd
