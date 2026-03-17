@@ -73,6 +73,24 @@ jobs:
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
+      - name: Scan image for vulnerabilities
+        run: |
+          gcloud artifacts docker images scan "$IMAGE:${{ github.sha }}" \
+            --format="json" \
+            --remote \
+            --location=us \
+            2>&1 | tee scan-results.json
+          CRITICAL=$(cat scan-results.json | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          vulns = data.get('response', {}).get('vulnerabilityReport', {}).get('vulnerabilities', [])
+          print(sum(1 for v in vulns if v.get('effectiveSeverity') == 'CRITICAL'))
+          ")
+          echo "Critical vulnerabilities found: $CRITICAL"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::Image contains $CRITICAL critical vulnerabilities — review scan-results.json"
+          fi
+
   deploy:
     name: Deploy to Cloud Run
     needs: build-push

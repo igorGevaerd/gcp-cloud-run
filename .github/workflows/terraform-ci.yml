@@ -90,18 +90,3 @@ jobs:
       - name: Fail if plan failed
         if: steps.plan.outputs.exitcode != '0'
         run: exit 1
-
-      - name: Set approval status to pending
-        if: steps.plan.outputs.exitcode == '0'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state: 'pending',
-              context: 'terraform / approval',
-              description: 'Comment /approve on the PR to proceed',
-            });

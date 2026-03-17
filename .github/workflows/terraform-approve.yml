@@ -1,12 +1,23 @@
 name: Terraform Plan Approve
 
 on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    paths:
+      - 'terraform/**'
   issue_comment:
     types: [created]
 
 jobs:
   approve:
-    if: ${{ github.event.issue.pull_request != null && github.event.comment.user.login == 'igorGevaerd' && contains(github.event.comment.body, '/approve') }}
+    # Triggered by a PR with terraform changes, or by an /approve comment on a PR
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event.issue.pull_request != null &&
+        github.event.comment.user.login == 'igorGevaerd' &&
+        contains(github.event.comment.body, '/approve')
+      )
     runs-on: ubuntu-latest
     permissions:
       statuses: write
@@ -17,30 +28,45 @@ jobs:
         id: pr
         uses: actions/github-script@v7
         with:
+          result-encoding: string
           script: |
+            const prNumber = context.payload.pull_request?.number ?? context.issue.number;
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
+              pull_number: prNumber,
             });
-
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
+              pull_number: prNumber,
             });
-
             const hasTerraformChanges = files.some(f => f.filename.startsWith('terraform/'));
-
             return JSON.stringify({ sha: pr.data.head.sha, hasTerraformChanges });
-          result-encoding: string
 
-      - name: Set approval status to success
-        if: ${{ fromJson(steps.pr.outputs.result).hasTerraformChanges }}
+      # PR opened/updated with terraform changes — set status to pending until /approve
+      - name: Set approval status to pending
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const { sha } = ${{ steps.pr.outputs.result }};
+            const { sha } = JSON.parse(${{ toJson(steps.pr.outputs.result) }});
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              state: 'pending',
+              context: 'terraform / approval',
+              description: 'Comment /approve on the PR to proceed',
+            });
+
+      # /approve comment — set status to success
+      - name: Set approval status to success
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { sha } = JSON.parse(${{ toJson(steps.pr.outputs.result) }});
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
